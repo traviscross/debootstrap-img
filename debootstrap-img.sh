@@ -179,6 +179,8 @@ EEOF
 systemctl enable systemd-networkd
 echo "###> Using tmpfs as /tmp...">&2
 systemctl enable tmp.mount
+echo "###> Setting hostname...">&2
+echo "vmi" > /etc/hostname
 echo "###> Clearing password...">&2
 passwd -d root
 EOF
