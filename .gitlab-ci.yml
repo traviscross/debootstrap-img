@@ -1,0 +1,17 @@
+stages:
+  - build_artifact
+
+before_script:
+  - sudo apt-get update -y
+  - sudo apt-get install -y debootstrap qemu-utils btrfs-tools parted dbus
+
+build_artifact:
+  stage: build_artifact
+  artifacts:
+    name: "${CI_BUILD_NAME}_${CI_BUILD_REF_NAME}"
+    expire_in: 1 days
+    paths:
+      - output/vmi-debian-jessie.vdi
+  script:
+    - mkdir -p output
+    - sudo sh -x ./debootstrap-img.sh -m release -f qcow2 -o output/vmi-debian-jessie.qcow2
