@@ -81,10 +81,18 @@ To use this program, you first need to install:
 - `debootstrap`
 - `qemu-utils`
 - `btrfs-progs` / `btrfs-tools`
+- `parted`
+- `systemd-container` (`systemd-nspawn`)
 
-e.g.:
+On Debian stretch/sid:
 
-    apt-get install debootstrap qemu-utils btrfs-progs
+    apt-get install debootstrap qemu-utils \
+      btrfs-progs parted systemd-container
+
+On Debian jessie:
+
+    apt-get install debootstrap qemu-utils \
+      btrfs-tools parted dbus
 
 ## License
 
