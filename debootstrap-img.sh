@@ -121,9 +121,17 @@ init_mount () {
     || err "Couldn't mount tmpfs for working directory"
 }
 
+debstrap_v () {
+  # Test whether debootstrap support --merged-usr
+  if debootstrap --merged-usr | head -n1 | grep -q ^I:; then
+    debootstrap --merged-usr "$@"
+  else
+    debootstrap "$@"
+  fi
+}
+
 debstrap () {
-  debootstrap \
-    --merged-usr \
+  debstrap_v \
     --include=dbus \
     --variant=$deb_variant \
     $deb_suite \
