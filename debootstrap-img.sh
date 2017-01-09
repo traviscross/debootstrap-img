@@ -251,7 +251,7 @@ partition_img () {
 format_img () {
   bind_img
   mkfs.btrfs -M "$nbd_dev1"
-  sync
+  sync; sleep 1
   unbind_img
 }
 
