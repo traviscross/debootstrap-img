@@ -345,5 +345,9 @@ test "$mode" = "install-rootfs" && { install_rootfs; exit 0; }
 test "$mode" = "install-boot" && { install_boot; exit 0; }
 test "$mode" = "assemble" && { install_boot; exit 0; }
 test "$mode" = "finalize" && { finalize_img; exit 0; }
-test "$mode" = "release" && { install_boot; finalize_img; clean_mount; exit 0; }
+test "$mode" = "release" && {
+  add_trap "clean_mount"
+  install_boot; finalize_img
+  pop_trap
+  exit 0; }
 err "Unknown mode"
