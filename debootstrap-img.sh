@@ -206,6 +206,7 @@ list_parts () {
 
 bind_parts () {
   list_parts | while read dev start len; do
+    if test $len = 0; then continue; fi
     dmsetup create "${dev##*/}" <<EOF
 0 $len linear $nbd_dev $start
 EOF
@@ -214,6 +215,7 @@ EOF
 
 unbind_parts () {
   list_parts | while read dev start len; do
+    if test $len = 0; then continue; fi
     dmsetup remove "${dev##*/}"
   done
 }
