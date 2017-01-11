@@ -301,11 +301,26 @@ umount_img () {
   fi
 }
 
+minimize_img () {
+  test -n "$1" || err "Minimize prefix is null"
+  find "$1"/var/lib/apt/lists -type f \
+    | xargs rm -f
+  rm -f "$1"/var/cache/apt/*.bin
+  rm -rf "$1"/var/log/journal/*
+  rm -f "$1"/var/log/*.log
+  rm -f "$1"/var/log/apt/*.log
+  rm -f "$1"/var/log/btmp
+  rm -f "$1"/var/log/dmesg
+  rm -f "$1"/var/log/faillog
+  rm -f "$1"/var/log/fsck/*
+  rm -f "$1"/var/log/lastlog
+  rm -f "$1"/var/log/wtmp
+}
+
 install_rootfs () {
   test -d "$rdir" || build
   echo "## Installing rootfs into $output_img...">&2
-  find "$rdir"/var/lib/apt/lists -type f \
-    | xargs rm -f
+  minimize_img "$rdir"
   qemu-img create -f "$output_fmt" \
     "$output_img" "$output_size"
   partition_img
@@ -352,6 +367,7 @@ finalize_img () {
   cat > "$idir"/etc/apt/sources.list <<EOF
 deb http://httpredir.debian.org/debian $deb_suite main
 EOF
+  minimize_img "$idir"
   umount_img
 }
 
