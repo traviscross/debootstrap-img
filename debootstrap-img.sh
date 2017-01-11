@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 usage () {
-  echo "Usage: $0 [-h]">&2
+  echo "Usage: $0 [-h] [-c]">&2
   echo "    [-d <workdir>]">&2
   echo "    [-e <fs_type>]">&2
   echo "    [-f <output_fmt>]">&2
@@ -42,14 +42,16 @@ wdir=""
 mode="release"
 fs_type="btrfs"
 nbd_dev="/dev/nbd0"
+output_compress=false
 output_fmt="qcow2"
 output_img=""
 output_size="8G"
 deb_variant="minbase"
 deb_suite="jessie"
 deb_mirror="http://httpredir.debian.org/debian"
-while getopts "d:e:f:hi:l:m:n:o:s:" o; do
+while getopts "cd:e:f:hi:l:m:n:o:s:" o; do
   case "$o" in
+    c) output_compress=true ;;
     d) wdir="$OPTARG" ;;
     e) fs_type="$OPTARG" ;;
     f) output_fmt="$OPTARG" ;;
@@ -90,6 +92,13 @@ case "$fs_type" in
   ext3|ext4) fs_tools="" ;;
   *) err "Unsupported file system selected" ;;
 esac
+
+if $output_compress; then
+  case "$output_fmt" in
+    qcow|qcow2) ;;
+    *) err "Compression not supported for $output_fmt" ;;
+  esac
+fi
 
 set -e
 blocked_signals="INT HUP QUIT TERM USR1"
@@ -371,6 +380,20 @@ EOF
   umount_img
 }
 
+compress_img () {
+  if $output_compress; then
+    case "$output_fmt" in
+      qcow|qcow2)
+        echo "## Compressing $output_img...">&2
+        local ctmp="$(mktemp "$output_img".XXXXXX)"
+        qemu-img convert -c -O "$output_fmt" \
+          "$output_img" "$ctmp"
+        mv "$ctmp" "$output_img"
+        ;;
+    esac
+  fi
+}
+
 trap 'exit 1' $blocked_signals
 trap handle_exit EXIT
 
@@ -390,7 +413,7 @@ test "$mode" = "assemble" && { install_boot; exit 0; }
 test "$mode" = "finalize" && { finalize_img; exit 0; }
 test "$mode" = "release" && {
   add_trap "clean_mount"
-  install_boot; finalize_img
+  install_boot; finalize_img; compress_img
   pop_trap
   exit 0; }
 err "Unknown mode"

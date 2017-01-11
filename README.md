@@ -10,7 +10,7 @@ supported by [QEMU](http://www.qemu.org).
 
 Run with:
 
-    $ ./debootstrap-img.sh [-h]
+    $ ./debootstrap-img.sh [-h] [-c]
         [-d <workdir>]
         [-e <fs_type>]
         [-f <output_fmt>]
@@ -22,6 +22,9 @@ Run with:
         [-s <deb_suite>]
 
 `-h` Show inline usage information.
+
+`-c` Compress the resulting image.  This is only supported for `qcow`
+and `qcow2` formats.
 
 `-d <workdir>` Select the path of the working directory mount point.
 This directory will be created if it does not exist.  We then mount a
