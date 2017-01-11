@@ -23,6 +23,7 @@
 usage () {
   echo "Usage: $0 [-h]">&2
   echo "    [-d <workdir>]">&2
+  echo "    [-e <fs_type>]">&2
   echo "    [-f <output_fmt>]">&2
   echo "    [-i <deb_mirror>]">&2
   echo "    [-l <output_size>]">&2
@@ -39,6 +40,7 @@ err () {
 
 wdir=""
 mode="release"
+fs_type="btrfs"
 nbd_dev="/dev/nbd0"
 output_fmt="qcow2"
 output_img=""
@@ -46,9 +48,10 @@ output_size="8G"
 deb_variant="minbase"
 deb_suite="jessie"
 deb_mirror="http://httpredir.debian.org/debian"
-while getopts "d:f:hi:l:m:n:o:s:" o; do
+while getopts "d:e:f:hi:l:m:n:o:s:" o; do
   case "$o" in
     d) wdir="$OPTARG" ;;
+    e) fs_type="$OPTARG" ;;
     f) output_fmt="$OPTARG" ;;
     h) usage; exit 0 ;;
     i) deb_mirror="$OPTARG" ;;
@@ -63,6 +66,30 @@ shift $(($OPTIND-1))
 
 test -n "$output_img" \
   || output_img="vmi-debian-${deb_suite}.${output_fmt}"
+
+ext2_mkfs () {
+  mkfs.ext2 "$1"
+  tune2fs -c0 "$1"
+}
+
+fs_tools=""
+fs_mount_opts="noatime"
+fs_mkfs="mkfs.${fs_type}"
+case "$fs_type" in
+  btrfs)
+    fs_mount_opts="noatime,compress=zlib"
+    fs_mkfs="btrfs -M"
+    if test deb_suite = "jessie"; then
+      fs_tools="btrfs-tools"
+    else
+      fs_tools="btrfs-progs"
+    fi
+    ;;
+  xfs) fs_tools="xfsprogs" ;;
+  ext2) fs_mkfs="ext2_mkfs" ;;
+  ext3|ext4) fs_tools="" ;;
+  *) err "Unsupported file system selected" ;;
+esac
 
 set -e
 blocked_signals="INT HUP QUIT TERM USR1"
@@ -163,7 +190,7 @@ echo "###> Installing kernel, grub, and base tools...">&2
 DEBIAN_FRONTEND=noninteractive DEBIAN_PRIORITY=critical \
   DEBCONF_NOWARNINGS="yes" DEBCONF_NONINTERACTIVE_SEEN="true" \
   apt-get install -y \
-    linux-image-amd64 grub-pc btrfs-tools \
+    linux-image-amd64 grub-pc $fs_tools \
     iproute2 ssh iputils-ping netbase
 echo "###> Clearing SSH host keys...">&2
 rm -f /etc/ssh/*_key*
@@ -250,7 +277,7 @@ partition_img () {
 
 format_img () {
   bind_img
-  mkfs.btrfs -M "$nbd_dev1"
+  $fs_mkfs "$nbd_dev1"
   sync; sleep 1
   unbind_img
 }
@@ -260,7 +287,7 @@ mount_img () {
   add_trap "rmdir $idir"
   mkdir -p "$idir"
   add_trap "sync && umount $idir"
-  mount -o noatime,compress=zlib "$nbd_dev1" "$idir"
+  mount -o "$fs_mount_opts" "$nbd_dev1" "$idir"
 }
 
 umount_img () {
@@ -286,7 +313,7 @@ install_rootfs () {
   mount_img
   cp -Ta "$rdir" "$idir"
   cat > "$idir"/etc/fstab <<EOF
-UUID=$(vol_id "$nbd_dev1") / btrfs noatime,compress=zlib 0 0
+UUID=$(vol_id "$nbd_dev1") / $fs_type $fs_mount_opts 0 0
 EOF
   chmod 644 "$idir"/etc/fstab
   umount_img

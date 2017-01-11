@@ -12,6 +12,7 @@ Run with:
 
     $ ./debootstrap-img.sh [-h]
         [-d <workdir>]
+        [-e <fs_type>]
         [-f <output_fmt>]
         [-i <deb_mirror>]
         [-l <output_size>]
@@ -26,6 +27,10 @@ Run with:
 This directory will be created if it does not exist.  We then mount a
 `tmpfs` on this mount point.  By default we use a `tmp` directory in
 the current working directory.
+
+`-e <fs_type>` Select the type of the root filesystem.  The default is
+`btrfs` with `zlib` compression.  We also support `xfs`, `ext2`,
+`ext3`, and `ext4`.
 
 `-f <output_fmt>` Select the image format of the resulting virtual
 machine image.  This can be any format supported by `qemu-img(1)`.
