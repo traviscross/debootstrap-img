@@ -328,6 +328,10 @@ minimize_img () {
 
 install_rootfs () {
   test -d "$rdir" || build
+  echo "## Enabling systemd-resolved in $output_img...">&2
+  systemd-nspawn -D "$rdir" -- systemctl enable systemd-resolved
+  rm -f "$rdir"/etc/resolv.conf
+  ln -s /run/systemd/resolve/resolv.conf "$rdir"/etc/resolv.conf
   echo "## Installing rootfs into $output_img...">&2
   minimize_img "$rdir"
   qemu-img create -f "$output_fmt" \
